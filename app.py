@@ -54,6 +54,11 @@ def get_repo_data():
     else:
         raise Exception(f"Error {response.status_code}: {response.text}")
 
+@app.route('/refresh')
+def refresh_data():
+    repo_data_html = get_repo_data()
+    return render_template('repo_data.html', repo_data_html=repo_data_html)
+
 @app.route('/')
 def display_repo_data():
     repo_data_html = get_repo_data()
