@@ -9,24 +9,37 @@ api_url = 'https://api.github.com/graphql'
 
 # GitHub GraphQL query
 graphql_query = '''
-    query {
-        viewer {
-            login
-            repositories(first: 5) {
-                nodes {
-                    name
-                    description
+query Nodes {
+  repository(owner: "eoyo2", name: "graphqlApp") {
+    defaultBranchRef {
+      target {
+        ... on Commit {
+          history(first: 10) {
+            edges {
+              node {
+                message
+                oid
+                author {
+                  name
+                  email
+                  date
                 }
+              }
             }
+          }
         }
+      }
     }
+  }
+}
 '''
 
 # Replace 'YOUR_GITHUB_TOKEN' with your GitHub personal access token
-github_token = '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'
+with open('config.txt','r') as f:
+    github_token = f.readlines()[0]
 
 # Function to fetch GitHub repository data
-def get_repo_data(github_token=github_token):
+def get_repo_data():
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {github_token}'
@@ -34,9 +47,10 @@ def get_repo_data(github_token=github_token):
     response = requests.post(api_url, json={'query': graphql_query}, headers=headers)
     if response.status_code == 200:
         response_json = response.json()
-        repositories_data = response_json.get("data", {}).get("viewer", {}).get("repositories", {}).get("nodes", [])
-        df = pd.json_normalize(repositories_data)
-        return df.to_html()
+        commit_history = response_json['data']['repository']['defaultBranchRef']['target']['history']['edges']
+        flattened_data = pd.json_normalize([commit['node'] for commit in commit_history])
+        return flattened_data.to_html()
+        #return response_json
     else:
         raise Exception(f"Error {response.status_code}: {response.text}")
 
